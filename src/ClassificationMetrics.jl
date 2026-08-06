@@ -7,7 +7,7 @@ export AggregationSet
 export macro_aggregation, micro_aggregation, weighted_aggregation, no_aggregation
 
 using Statistics, OneHotArrays, LinearAlgebra, PrettyTables, Printf
-using CommonUtils
+using ..CommonUtils
 import OneHotArrays: onehotbatch, OneHotLike
 import Base: show, getindex, vcat
 

@@ -7,8 +7,9 @@ from, by training a `LogBoardAutoencoder` (U-Net encoders/decoders) to produce m
 Reference implementation of the paper **"Timber tracing with multimodal encoder-decoder
 networks"** (Zolotarev et al., CAIP 2019) — see [Citation](#citation).
 
-Entry point: [`TimberTracingTest.jl`](TimberTracingTest.jl). Local modules live in
-[`src/`](src) and are loaded via `Config.jl` (they are not a registered package).
+This is a Julia package `TimberTracing` (code in [`src/`](src)); the experiment lives in the
+top-level script [`TimberTracingTest.jl`](TimberTracingTest.jl), which does `using TimberTracing`.
+Run everything with `julia --project=.`.
 
 ## Prerequisites
 
@@ -19,16 +20,12 @@ Entry point: [`TimberTracingTest.jl`](TimberTracingTest.jl). Local modules live 
 
 ## Data location
 
-`Config.jl` defines where data lives:
+Set the **`TIMBER_TRACING_ROOT`** environment variable to your data root — the folder that
+contains a `timber_tracing/` sub-folder with the input data. Model checkpoints and result
+images are written under `out_data/` in the same root. The experiment errors out with a
+clear message if the variable is not set.
 
-```julia
-const DATA_ROOT = get(ENV, "TIMBER_TRACING_ROOT", raw"D:\OneDrive\OneDrive - LUT University")
-dataset_path() = joinpath(DATA_ROOT, "timber_tracing")   # input datasets
-out_path(parts...) = joinpath(DATA_ROOT, "out_data", parts...)   # checkpoints + result images
-```
-
-Point it at your data root by setting the `TIMBER_TRACING_ROOT` environment variable
-(or editing the default). It must contain a `timber_tracing/` folder holding your **dataset
+`TIMBER_TRACING_ROOT/` must contain a `timber_tracing/` folder holding your **dataset
 folders** — see **Data format** below for the exact layout and file naming.
 
 ## Data format
@@ -85,14 +82,18 @@ The shipped defaults reference the original paper's datasets (`HONKALAHTI2018`, 
 ## Running
 
 ```bash
+# set your data root first (bash shown; use $env: on Windows PowerShell)
+export TIMBER_TRACING_ROOT=/path/to/data
 julia --project=. TimberTracingTest.jl
 ```
 
-The first run instantiates the project (downloads/precompiles dependencies). In the REPL,
-`include("TimberTracingTest.jl")` runs a single short iteration; run as a script it runs the
-full experiment (5 iterations × 50 epochs).
+The first run instantiates the project (`julia --project=. -e 'using Pkg; Pkg.instantiate()'`
+downloads/precompiles dependencies). Run as a script it runs the full experiment
+(5 iterations × up to 50 epochs); in the REPL, `include("TimberTracingTest.jl")` runs a single
+short iteration.
 
-To experiment interactively, `include("Config.jl")` then call
+To experiment interactively, start `julia --project=.`, then `include("TimberTracingTest.jl")`
+(this defines everything and runs one short iteration) and call
 `train_model(1; epochs=1, batchsize=1, target_size=(80,256))` with whatever overrides you want.
 
 ### Following a long run
@@ -113,8 +114,9 @@ julia --project=. follow.jl > run.log 2>&1   # then: tail -f run.log
 
 ## GPU notes
 
-- Precompilation is forced **serial** (`JULIA_NUM_PRECOMPILE_TASKS=1`, set in `Config.jl`)
-  to avoid a Julia 1.11 deadlock when precompiling Flux's CUDA extensions in parallel.
+- Precompilation is forced **serial** (`JULIA_NUM_PRECOMPILE_TASKS=1`, set at the top of
+  `TimberTracingTest.jl`) to avoid a Julia 1.11 deadlock when precompiling Flux's CUDA
+  extensions in parallel. If you `instantiate` manually, set that env var first.
 - On some Windows machines the bundled `CUDNN_jll` fails to load its sublibraries
   (`CUDNN_STATUS_SUBLIBRARY_LOADING_FAILED`). If you hit this and have a working system
   cuDNN, point CUDA.jl's cuDNN at it via an `Overrides.toml` in your Julia depot and put the

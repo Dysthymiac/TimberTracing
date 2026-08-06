@@ -1,13 +1,11 @@
-include("Config.jl")
-# using Flux
-# @eval Flux (c::Chain)(x) = foldl((y,f) -> f(y), (x, c.layers...))
+# Serial precompilation avoids a Julia 1.11 deadlock in Flux's CUDA extensions.
+get!(ENV, "JULIA_NUM_PRECOMPILE_TASKS", "1")
+
+using TimberTracing            # the local package (run with `julia --project=.`)
 using CUDA
 using FileIO, Images
 isinteractive() && using ImageView
-# isinteractive() && using ProfileView
 using LazyArrays
-using TimberDatasets, TimberTraining
-using ExtraAugmentors
 using Flux, Augmentor, DataLoaders
 import Zygote: withgradient, ignore
 import ProgressMeter: Progress
@@ -17,7 +15,17 @@ using Parameters: @with_kw, type2dict
 using JLSO
 using Transducers
 using Dates
-using ClassificationMetrics
+
+# ---- Data locations -------------------------------------------------------
+# Root directory that holds the `timber_tracing` dataset; model checkpoints and
+# result images are written under `out_data/` in the same root. Set the
+# TIMBER_TRACING_ROOT environment variable to your data root (see the README).
+const DATA_ROOT = get(ENV, "TIMBER_TRACING_ROOT") do
+    error("Set the TIMBER_TRACING_ROOT environment variable to your data root " *
+          "(the folder containing `timber_tracing/`). See the README.")
+end
+dataset_path() = joinpath(DATA_ROOT, "timber_tracing")
+out_path(parts...) = joinpath(DATA_ROOT, "out_data", parts...)
 
 const all = All()
 const WEIGHTED = weighted_aggregation  # used by report_old_metrics (test_old_metrics=true)
