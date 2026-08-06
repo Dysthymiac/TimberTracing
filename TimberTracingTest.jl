@@ -7,7 +7,7 @@ isinteractive() && using ImageView
 # isinteractive() && using ProfileView
 using LazyArrays
 using TimberDatasets, TimberTraining
-using DigisawIO, ExtraAugmentors
+using ExtraAugmentors
 using Flux, Augmentor, DataLoaders
 import Zygote: withgradient, ignore
 import ProgressMeter: Progress
@@ -36,10 +36,15 @@ val_boards = [2, 5, 8, 12, 15, 18, 22, 25, 28, 32, 35, 38, 42, 45, 48]
     batchsize::Int = isinteractive() ? 1 : 3    # batch size
     epochs::Int = isinteractive() ? 1 : 50       # number of epochs
     use_cuda::Bool = true  # use gpu, if cuda is available
-    train_proposal = Dict(HONKALAHTI2018=>all, DIGISAW2021=>all)
-    val_proposal = Dict(HONKALAHTI2019=>all)
-    # train_proposal = Dict(HONKALAHTIOLD=>not(val_boards)=>all)
-    # val_proposal = Dict(HONKALAHTIOLD=>val_boards.=>all)
+    # Which dataset folders (under DATA_ROOT/timber_tracing/) to train / validate on.
+    # Keys are folder names — put your own data in folders and name them here, e.g.
+    # Dict("train"=>all) / Dict("val"=>all). `all` means "use all logs in that folder".
+    # See the "Data format" section of the README.
+    train_proposal = Dict("HONKALAHTI2018"=>all, "DIGISAW2021"=>all)
+    val_proposal = Dict("HONKALAHTI2019"=>all)
+    # Split by log number within one folder instead:
+    # train_proposal = Dict("HONKALAHTIOLD"=>not(val_boards)=>all)
+    # val_proposal = Dict("HONKALAHTIOLD"=>val_boards.=>all)
     model_kws = Dict(:encoders=>2, :decoders=>1, :skip_action=>cat_skip, :start_filters=>32)
     heightmap_suffix = ""
     loss_terms = [equivariant_term, barcode_term] # [equivariant_term, barcode_term, F_diff_relu_term, l2_norm_term]
@@ -294,7 +299,7 @@ function train_model(iteration; kws...)
 
     if test_old_metrics
         predicted, real = calculate_matches(model, 
-            get_flat_image_paths(dataset_path(), Dict(HONKALAHTIOLD=>all), heightmap_suffix=heightmap_suffix),
+            get_flat_image_paths(dataset_path(), Dict("HONKALAHTIOLD"=>all), heightmap_suffix=heightmap_suffix),
             device, augmentors[5:6]..., get_barcode)
         report_old_metrics(predicted, real; io=io)
     end

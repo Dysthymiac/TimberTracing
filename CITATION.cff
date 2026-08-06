@@ -1,0 +1,37 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite the paper below."
+title: "Timber Tracing"
+abstract: >-
+  Reference implementation of matching sawn boards back to the logs they came from,
+  using multimodal encoder-decoder networks that produce matching barcodes for a log's
+  heightmap and its boards.
+authors:
+  - family-names: Zolotarev
+    given-names: Fedor
+type: software
+repository-code: "https://github.com/Dysthymiac/TimberTracing"
+preferred-citation:
+  type: conference-paper
+  title: "Timber Tracing with Multimodal Encoder-Decoder Networks"
+  authors:
+    - family-names: Zolotarev
+      given-names: Fedor
+    - family-names: Eerola
+      given-names: Tuomas
+    - family-names: Lensu
+      given-names: Lasse
+    - family-names: Kälviäinen
+      given-names: Heikki
+    - family-names: Haario
+      given-names: Heikki
+    - family-names: Heikkinen
+      given-names: Jere
+    - family-names: Kauppi
+      given-names: Tomi
+  collection-title: "International Conference on Computer Analysis of Images and Patterns (CAIP)"
+  publisher:
+    name: "Springer International Publishing"
+  year: 2019
+  start: 342
+  end: 353
+  doi: "10.1007/978-3-030-29891-3_30"

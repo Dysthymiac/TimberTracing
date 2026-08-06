@@ -3,9 +3,6 @@ module TimberDatasets
 
 export All, find_paths, create_dataset, ClusterHeightmapBoardPaths, ClusterHeightmapBoardDataset, TypeOfData, get_flat_image_paths, not
 
-# include("DigisawIO.jl")
-using DigisawIO
-
 using Images, DataLoaders, Augmentor
 
 using Transducers
@@ -39,49 +36,25 @@ struct LogPathsBase{C, H, B}
     boards::B
 end
 
-const LogPaths = LogPathsBase{String, 
-                        Dict{Integer, String}, 
-                        Dict{Integer, Dict{BoardSide, String}}}
+const LogPaths = LogPathsBase{String,
+                        Dict{Integer, String},
+                        Dict{Integer, Dict{String, String}}}
 
 Base.broadcastable(proposal::LogPathsBase{C, H, B}) where {C, H, B} = Ref(proposal)
 
-const DatasetPaths = Dict{LogDataset, Dict{Integer, LogPaths}}
+# Datasets are identified by their folder name (any name works).
+const DatasetPaths = Dict{String, Dict{Integer, LogPaths}}
 
-
-get_iters(::All; dir=pwd(), mapf=identity) = map(s->(mapf(s), all), readdir(dir))
-get_iters(pair::Pair; dir=pwd(), mapf=identity) = [pair]
-get_iters(dict; dir=pwd(), mapf=identity) = dict
-
-get_filter(::All) = _ -> true
-get_filter(dict::AbstractDict{K, V}) where {K, V} = ∈(keys(dict))
-get_filter(vals::AbstractVector) = ∈(vals)
-
-get_filter2(::All) = (_, _) -> true
-get_filter2(dict::AbstractDict{K, V}) where {K, V} = (x, y) -> get_filter(dict)(x) && get_filter(dict[x])(y)
-
-function check_modality_file(parse, file, filter, regex)
-    !isfile(file) && return nothing
-    matches = match(regex, file)
-    isnothing(matches) && return nothing
-    parsed = parse(matches.captures...)
-    (any(isnothing.(parsed)) || !filter(parsed...)) && return nothing
-    return parsed
-end
-
-function parse_board(board_str)
-    res = (parse_board_side ∘ uppercase)(board_str)
-    return res
-end
+# Board side (e.g. "upper"/"lower") is only an organizational key — normalize to lowercase.
+parse_board(board_str) = lowercase(board_str)
 
 heightmap_suffix() = "" # "_flat_cubic"
 
+# Recursive glob: match `pattern` in `dir` and every sub-directory (any depth).
 function rglob(pattern, dir=".")
-    result = []
-    for (root, dirs, _) in walkdir(dir)
-        for dir in dirs
-            subdir = joinpath(root, dir)
-            push!(result, glob(pattern, subdir)...)
-        end
+    result = String[]
+    for (root, _, _) in walkdir(dir)
+        append!(result, glob(pattern, root))
     end
     return result
 end
@@ -107,22 +80,28 @@ function find_paths(root_dir, proposal = all; heightmap_suffix=heightmap_suffix(
     try_get_captures(x) = isnothing(x) ? nothing : x.captures
     get_matches(str, pattern) = match(glob_to_regex(pattern), str) |> try_get_captures
 
-    all_datasets = map(parse_dataset, readdir())
+    # Every sub-folder is a dataset, identified by its name (no fixed list of names).
+    all_datasets = filter(isdir, readdir())
 
     process_all(::All) = [(all, all)]
     process_all(x::Pair) = [x]
     process_all(x) = x
 
-    
+
     in_all(x, y::Not{T}) where T = x ∉ y.x
     in_all(_, ::All) = true
     in_all(x, y) = x == y
     # in_all(x, y) = x ∈ y
 
+    # Surface the most common own-data mistake (typo'd / missing dataset folder) instead of failing silently.
+    for (requested, _) ∈ process_all(proposal)
+        requested isa AbstractString && requested ∉ all_datasets &&
+            @warn "Requested dataset folder '$requested' not found in $root_dir" available_datasets=all_datasets
+    end
+
     for (datasets, vals) ∈ process_all(proposal)
         for dataset ∈ all_datasets |> Filter(x->in_all(x, datasets))
-            !isdir(string(dataset)) && continue
-            cd(string(dataset))
+            cd(dataset)
             dataset_dict = Dict{Integer, LogPaths}()
 
             all_clusters = rglob(insert_values(clusterstr, "*") * "*") |> Map() do p
@@ -161,12 +140,12 @@ function find_paths(root_dir, proposal = all; heightmap_suffix=heightmap_suffix(
                         end
                     end
                     log_boards = all_boards |> Filter(x->in_all(x[1], log)) |> collect
-                    boards = Dict{Integer, Dict{BoardSide, String}}()
+                    boards = Dict{Integer, Dict{String, String}}()
                     for (board, side_proposal) ∈ process_all(propagate_log_proposal(logproposal, :boards))
                         for side ∈ side_proposal
                             for (log, board_num, board_side, board_path) ∈ log_boards |> Filter(x->in_all(x[2], board) && in_all(x[3], side))
                                 if !haskey(boards, board_num)
-                                    boards[board_num] = Dict{BoardSide, String}()
+                                    boards[board_num] = Dict{String, String}()
                                 end
                                 boards[board_num][board_side] = board_path
                             end
@@ -177,11 +156,16 @@ function find_paths(root_dir, proposal = all; heightmap_suffix=heightmap_suffix(
             end
             if !isempty(dataset_dict)
                 result[dataset] = dataset_dict
+            else
+                @warn "Dataset folder '$dataset' has no recognizable log files " *
+                      "(expected logN_clusters.*, logN_runR.*, logN_boardM_side.*); ignoring."
             end
             cd("..")
         end
     end
     cd(start_path)
+    isempty(result) && @warn "No logs found under $root_dir — check the folder layout and file " *
+                             "naming (see the 'Data format' section of the README)."
     return result
 end
 

@@ -2,7 +2,7 @@
 
 julia_version = "1.11.3"
 manifest_format = "2.0"
-project_hash = "434398833fe67c706f192012716677b676fbb98f"
+project_hash = "312fd1afe767f135382172fa70e20fc2c7a39bcc"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "0a81a018463de6c3f4f2c9360121c562e5add9e4"
@@ -1154,11 +1154,6 @@ deps = ["LearnBase", "MappedArrays", "StatsBase"]
 git-tree-sha1 = "fd75d4b0c4016e047bbb6263eecf7ae3891af522"
 uuid = "66a33bbf-0c2b-5fc8-a008-9da813334f0a"
 version = "0.5.7"
-
-[[deps.MLStyle]]
-git-tree-sha1 = "bc38dff0548128765760c79eb7388a4b37fae2c8"
-uuid = "d8e11817-5142-5d16-987a-aa16d5891078"
-version = "0.4.17"
 
 [[deps.MLUtils]]
 deps = ["ChainRulesCore", "CodeTracking", "Compat", "DataAPI", "DelimitedFiles", "Distributed", "InteractiveUtils", "MLCore", "Mmap", "NNlib", "Random", "ShowCases", "SimpleTraits", "Statistics", "StatsBase", "Tables"]
