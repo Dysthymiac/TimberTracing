@@ -1,0 +1,18 @@
+# Machine-specific CUDA/GPU preferences (do not commit)
+LocalPreferences.toml
+
+# Run outputs (normally written under DATA_ROOT/out_data, but ignore any that land here)
+/out_data/
+*.jlso
+
+# Scratch / logs
+run*.log
+_*.jl
+
+# Julia
+*.jl.cov
+*.jl.*.cov
+*.jl.mem
+/docs/build/
+
+# Note: Manifest.toml is intentionally NOT ignored — commit it for a reproducible env.
